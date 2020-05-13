@@ -1,0 +1,33 @@
+
+//https://github.com/turretcss/turretcss/blob/master/turret/_base.css
+
+/**
+ * _variables-initial.scss
+ */
+
+// Colors
+
+//Border Radius
+$border-radius-rounded: 0.25em;
+
+// Link colors
+
+
+// Typography
+
+
+// Responsiveness
+
+
+// Miscellaneous
+$section-padding: 1rem .825rem !default;
+
+
+// Flags
+
+
+/* CSS Custom Properties */
+:root {
+    --address-border-radius-rounded: #{$border-radius-rounded}; /* set the value with the SASS vars (with interpolation) */
+}
+

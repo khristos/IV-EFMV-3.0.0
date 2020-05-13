@@ -1,0 +1,71 @@
+@charset "utf-8";
+
+//
+// Customization SCSS file
+//
+
+/*-----------*/
+/*  VENDOR   */
+/*-----------*/
+@import "../../node_modules/bulma/sass/utilities/initial-variables";
+@import '01_utility/variables-initial';
+@import '01_utility/variables-derived';
+//@import '00_vendor/funcssion/funcssion'; //https://funcssion.com
+@import "../../node_modules/@mdi/font/css/materialdesignicons"; //https://materialdesignicons.com
+
+// You can easily customize Bulma with your own variables.
+// Just uncomment the following block to see the result.
+
+/*
+// 1. Import the initial variables
+@import "../node_modules/bulma/sass/utilities/initial-variables";
+
+// 2. Set your own initial variables
+// Update the blue shade, used for links
+$blue: #06bcef;
+// Add pink and its invert
+$pink: #ff8080;
+$pink-invert: #fff;
+// Update the sans-serif font family
+$family-sans-serif: "Helvetica", "Arial", sans-serif;
+
+// 3. Set the derived variables
+// Use the new pink as the primary color
+$primary: $pink;
+$primary-invert: $pink-invert;
+
+// 4. Import the rest of Bulma - https://bulma.io
+*/
+
+@import "../../node_modules/bulma/bulma.sass";
+
+/*-------------*/
+/*  UTILITY    */
+/*-------------*/
+@import '01_utility/all';
+
+
+/*-------------*/
+/*  BASE       */
+/*-------------*/
+@import '02_base/all';
+
+
+/*-------------*/
+/*  ELEMENT    */
+/*-------------*/
+@import '03_element/all';
+
+
+/*-------------*/
+/*  COMPONENT  */
+/*-------------*/
+@import '04_component/all';
+
+
+/*-------------*/
+/*  LAYOUT     */
+/*-------------*/
+@import '05_layout/all';
+
+

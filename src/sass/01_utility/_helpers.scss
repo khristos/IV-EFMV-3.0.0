@@ -1,0 +1,34 @@
+//
+//-- Helper Classes
+//
+
+.clearfix, .grid-float {
+	&::before, &::after {
+		content: "";
+		display: table;
+	}
+
+	&::after {
+		clear: both;
+	}
+}
+
+.ma {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+.ac {
+	text-align: center;
+}
+
+.flex-center {
+	@include flex-center;
+}
+
+.text-truncate {
+	display: block;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+  }

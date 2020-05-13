@@ -1,0 +1,147 @@
+// --------------------------------------------------
+// Flexbox SASS mixins
+// The spec: http://www.w3.org/TR/css3-flexbox
+// http://codehints.in/css-flexbox-sass-mixins/
+// https://web-crunch.com/sass-mixins-using-now/
+// --------------------------------------------------
+
+// Flexbox display
+@mixin flexbox() {
+  display: flex;
+}
+/*
+.container {
+     @include flexbox;
+ }
+*/
+
+
+// The 'flex' shorthand
+// - applies to: flex items
+// , initial, auto, or none
+@mixin flex($values) {
+  flex: $values;
+}
+
+// Flex Flow Direction
+// - applies to: flex containers
+// row | row-reverse | column | column-reverse
+@mixin flex-direction($value: row) {
+  flex-direction: $value;
+}
+/*
+.box {
+     @include flex-direction(row);
+ }
+*/
+
+// Flex Line Wrapping
+// - applies to: flex containers
+// nowrap | wrap | wrap-reverse
+@mixin flex-wrap($value: nowrap) {
+  flex-wrap: $value;
+}
+/*
+.box {
+  @include flex-wrap(wrap);
+}
+*/
+
+// Flex Direction and Wrap
+// - applies to: flex containers
+// <flex-direction> | <flex-wrap>| 
+@mixin flex-flow($values: (row nowrap)) {
+  flex-flow: $values;
+}
+/*
+.box {
+  @include flex-flow(row wrap);
+}
+ */
+
+// Display Order
+// - applies to: flex items
+// 
+@mixin order($int: 0) {
+  order: $int;
+}
+
+// Flex grow factor
+// - applies to: flex items
+// + Default: 0
+@mixin flex-grow($int: 0) {
+  flex-grow: $int;
+}
+/*
+.box {
+  @include flex-grow(1);
+}
+*/
+
+// Flex shrink
+// - applies to: flex item shrink factor
+//  
+@mixin flex-shrink($int: 1) {
+  flex-shrink: $int;
+}
+/*
+.box {
+  @include flex-shrink(1);
+}
+*/
+
+// Flex basis
+// - the initial main size of the flex item
+// - applies to: flex itemsnitial main size of the flex item
+//  
+@mixin flex-basis($value: auto) {
+  flex-basis: $value;
+}
+/*
+.container {
+  @include flex-basis(75%);
+}
+*/
+
+// Axis Alignment
+// - applies to: flex containers
+// flex-start | flex-end | center | space-between | space-around 
+@mixin justify-content($value: flex-start) {
+  justify-content: $value;
+}
+/*
+.container {
+  @include justify-content(space-between);
+}
+*/
+
+// Packing Flex Lines
+// - applies to: multi-line flex containers
+// flex-start | flex-end | center | space-between | space-around | stretch 
+@mixin align-content($value: stretch) {
+  align-content: $value;
+}
+/*
+.container {
+  @include align-content(space-between);
+}
+*/
+
+// Cross-axis Alignment
+// - applies to: flex containers
+// flex-start | flex-end | center | baseline | stretch 
+@mixin align-items($value: stretch) {
+  align-items: $value;
+}
+/*
+.container {
+  @include align-items(flex-end);
+}
+*/
+
+// Cross-axis Alignment
+// - applies to: flex items
+// auto | flex-start | flex-end | center | baseline | stretch 
+@mixin align-self($value: stretch) {
+  align-self: $value;
+}

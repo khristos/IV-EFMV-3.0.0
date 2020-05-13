@@ -1,0 +1,30 @@
+//
+//-- Loader
+//
+
+.efm__loader {
+    display: none;
+}
+
+.efm__loader[data-state~="is-loading"] {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    pointer-events: none;
+    background-color: rgba(0,0,0,0.5); /*dim the background*/
+}
+
+.efm__loader::before {
+    content: "Loading scans...";
+}
+
+.efm__loader--svg {
+    height: 100%; 
+    width: 100%;
+}

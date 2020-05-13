@@ -1,0 +1,13 @@
+/*
+//-- Flexbox Utility Classes
+//   https://github.com/turretcss/turretcss/blob/master/turret/utility/flex.css
+*/
+
+.inline-flex {
+    display: inline-flex;
+  }
+
+.flex-justify {
+    display: flex;
+    justify-content: space-between;
+}

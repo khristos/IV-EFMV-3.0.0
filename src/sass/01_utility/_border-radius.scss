@@ -1,0 +1,15 @@
+/*
+//-- Border Radius Utility Classes
+//   https://github.com/turretcss/turretcss/blob/master/turret/utility/border-radius.css
+*/
+
+/*.border-radius-rounded {
+    border-radius: #{$border-radius-rounded};
+}*/
+
+/* Check for Custom Properties support, and apply them */
+@supports(--address-border-radius: $border-radius-rounded) {
+    .border-radius-rounded {
+        border-radius: var(--border-radius-rounded, $border-radius-rounded);
+    }
+}
