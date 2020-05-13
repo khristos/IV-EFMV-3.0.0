@@ -2340,42 +2340,42 @@ var placeholders = function (template, data) {
 	return template;
 
 };
-/*!
- * reefjs v4.1.13
- * A lightweight helper function for creating reactive, state-based components and UI
- * (c) 2020 Chris Ferdinandi
- * MIT License
- * http://github.com/cferdinandi/reef
- */
-
-/**
- * Element.matches() polyfill (simple version)
- * https://developer.mozilla.org/en-US/docs/Web/API/Element/matches#Polyfill
- */
-if (!Element.prototype.matches) {
-	Element.prototype.matches = Element.prototype.msMatchesSelector || Element.prototype.webkitMatchesSelector;
-}
-
-(function (root, factory) {
-	if (typeof define === 'function' && define.amd) {
-		define([], (function () {
-			return factory(root);
-		}));
-	} else if (typeof exports === 'object') {
-		module.exports = factory(root);
-	} else {
-		root.Reef = factory(root);
-	}
-})(typeof global !== 'undefined' ? global : typeof window !== 'undefined' ? window : this, (function (window) {
-
+/*! Reef v7.0.1 | (c) 2020 Chris Ferdinandi | MIT License | http://github.com/cferdinandi/reef | A lightweight library for creating reactive, state-based components and UI */
+var Reef = (function () {
 	'use strict';
+
+	(function(){function k(){function p(a){return a?"object"===typeof a||"function"===typeof a:!1}var l=null;var n=function(a,c){function g(){}if(!p(a)||!p(c))throw new TypeError("Cannot create proxy with a non-object as target or handler");l=function(){a=null;g=function(b){throw new TypeError("Cannot perform '"+b+"' on a proxy that has been revoked");};};setTimeout((function(){l=null;}),0);var f=c;c={get:null,set:null,apply:null,construct:null};for(var h in f){if(!(h in c))throw new TypeError("Proxy polyfill does not support trap '"+
+	h+"'");c[h]=f[h];}"function"===typeof f&&(c.apply=f.apply.bind(f));var d=this,q=!1,r=!1;"function"===typeof a?(d=function(){var b=this&&this.constructor===d,e=Array.prototype.slice.call(arguments);g(b?"construct":"apply");return b&&c.construct?c.construct.call(this,a,e):!b&&c.apply?c.apply(a,this,e):b?(e.unshift(a),new (a.bind.apply(a,e))):a.apply(this,e)},q=!0):a instanceof Array&&(d=[],r=!0);var t=c.get?function(b){g("get");return c.get(this,b,d)}:function(b){g("get");return this[b]},w=c.set?function(b,
+	e){g("set");c.set(this,b,e,d);}:function(b,e){g("set");this[b]=e;},u={};Object.getOwnPropertyNames(a).forEach((function(b){if(!((q||r)&&b in d)){var e={enumerable:!!Object.getOwnPropertyDescriptor(a,b).enumerable,get:t.bind(a,b),set:w.bind(a,b)};Object.defineProperty(d,b,e);u[b]=!0;}}));f=!0;Object.setPrototypeOf?Object.setPrototypeOf(d,Object.getPrototypeOf(a)):d.__proto__?d.__proto__=a.__proto__:f=!1;if(c.get||!f)for(var m in a)u[m]||Object.defineProperty(d,m,{get:t.bind(a,m)});Object.seal(a);Object.seal(d);
+	return d};n.revocable=function(a,c){return {proxy:new n(a,c),revoke:l}};return n}var v="undefined"!==typeof process&&"[object process]"==={}.toString.call(process)||"undefined"!==typeof navigator&&"ReactNative"===navigator.product?global:self;v.Proxy||(v.Proxy=k(),v.Proxy.revocable=v.Proxy.revocable);})();
+
+	/**
+	 * CustomEvent() polyfill
+	 * https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent#Polyfill
+	 */
+	(function () {
+
+		if (typeof window.CustomEvent === "function") return false;
+
+		function CustomEvent(event, params) {
+			params = params || { bubbles: false, cancelable: false, detail: undefined };
+			var evt = document.createEvent('CustomEvent');
+			evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
+			return evt;
+		}
+
+		CustomEvent.prototype = window.Event.prototype;
+
+		window.CustomEvent = CustomEvent;
+
+	})();
 
 	//
 	// Variables
 	//
 
 	// Attributes that might be changed dynamically
-	var dynamicAttributes = ['checked', 'disabled', 'hidden', 'lang', 'readonly', 'required', 'selected', 'value'];
+	var dynamicAttributes = ['checked', 'selected', 'value'];
 
 	// If true, debug mode is enabled
 	var debug = false;
@@ -2400,6 +2400,10 @@ if (!Element.prototype.matches) {
 			return false;
 		}
 		return true;
+	};
+
+	var matches = function (elem, selector) {
+		return (Element.prototype.matches && elem.matches(selector)) || (Element.prototype.msMatchesSelector && elem.msMatchesSelector(selector)) || (Element.prototype.webkitMatchesSelector && elem.webkitMatchesSelector(selector));
 	};
 
 	/**
@@ -2463,6 +2467,51 @@ if (!Element.prototype.matches) {
 	};
 
 	/**
+	 * Debounce rendering for better performance
+	 * @param  {Constructor} instance The current instantiation
+	 */
+	var debounceRender = function (instance) {
+
+		// If there's a pending render, cancel it
+		if (instance.debounce) {
+			window.cancelAnimationFrame(instance.debounce);
+		}
+
+		// Setup the new render to run at the next animation frame
+		instance.debounce = window.requestAnimationFrame((function () {
+			instance.render();
+		}));
+
+	};
+
+	/**
+	 * Create settings and getters for data Proxy
+	 * @param  {Constructor} instance The current instantiation
+	 * @return {Object}               The setter and getter methods for the Proxy
+	 */
+	var dataHandler = function (instance) {
+		return {
+			get: function (obj, prop) {
+				if (['object', 'array'].indexOf(trueTypeOf(obj[prop])) > -1) {
+					return new Proxy(obj[prop], dataHandler(instance));
+				}
+				return obj[prop];
+			},
+			set: function (obj, prop, value) {
+				if (obj[prop] === value) return true;
+				obj[prop] = value;
+				debounceRender(instance);
+				return true;
+			},
+			deleteProperty: function (obj, prop) {
+				delete obj[prop];
+				debounceRender(instance);
+				return true;
+			}
+		};
+	};
+
+	/**
 	 * Find the first matching item in an array
 	 * @param  {Array}    arr      The array to search in
 	 * @param  {Function} callback The callback to run to find a match
@@ -2474,50 +2523,100 @@ if (!Element.prototype.matches) {
 		return matches[0];
 	};
 
-	/**
-	 * Find the index of the first matching item in an array
-	 * @param  {Array}    arr      The array to search in
-	 * @param  {Function} callback The callback to run to find a match
-	 * @return {*}                 The matching item's index
-	 */
-	var findIndex = function (arr, callback) {
-		return arr.reduce((function (index, item, currentIndex) {
-			if (index < 0 && callback(item, currentIndex)) return currentIndex;
-			return index;
-		}), -1);
+	var makeProxy = function (options, instance) {
+		if (options.setters) return !options.store ? options.data : null;
+		return options.data && !options.store ? new Proxy(options.data, dataHandler(instance)) : null;
 	};
 
 	/**
-	 * Create the Component object
+	 * Create the Reef object
 	 * @param {String|Node} elem    The element to make into a component
 	 * @param {Object}      options The component options
 	 */
-	var Component = function (elem, options) {
+	var Reef = function (elem, options) {
 
 		// Make sure an element is provided
-		if (!elem && (!options || !options.lagoon)) return err('Reef.js: You did not provide an element to make into a component.');
+		if (!elem && (!options || !options.lagoon)) return err('You did not provide an element to make into a component.');
 
 		// Make sure a template is provided
-		if (!options || (!options.template && !options.lagoon)) return err('Reef.js: You did not provide a template for this component.');
+		if (!options || (!options.template && !options.lagoon)) return err('You did not provide a template for this component.');
 
 		// Set the component properties
-		this.elem = elem;
-		this.data = options.data;
-		this.template = options.template;
-		this.allowHTML = options.allowHTML;
-		this.attached = [];
-		this.lagoon = options.lagoon;
+		var _this = this;
+		var _data = makeProxy(options, _this);
+		var _store = options.store;
+		var _setters = options.setters;
+		var _getters = options.getters;
+		_this.debounce = null;
+
+		// Create properties for stuff
+		Object.defineProperties(this, {
+			elem: {value: elem},
+			template: {value: options.template},
+			allowHTML: {value: options.allowHTML},
+			lagoon: {value: options.lagoon},
+			store: {value: _store},
+			attached: {value: []}
+		});
+
+		// Define setter and getter for data
+		Object.defineProperty(_this, 'data', {
+			get: function () {
+				return _setters ? clone(_data, true) : _data;
+			},
+			set: function (data) {
+				if (_store || _setters) return true;
+				_data = new Proxy(data, dataHandler(_this));
+				debounceRender(_this);
+				return true;
+			}
+		});
+
+		if (_setters && !_store) {
+			Object.defineProperty(_this, 'do', {
+				value: function (id) {
+					if (!_setters[id]) return err('There is no setter with this name.');
+					var args = Array.prototype.slice.call(arguments);
+					args[0] = _data;
+					_setters[id].apply(_this, args);
+					debounceRender(_this);
+				}
+			});
+		}
+
+		if (_getters && !_store) {
+			Object.defineProperty(_this, 'get', {
+				value: function (id) {
+					if (!_getters[id]) return err('There is no getter with this name.');
+					return _getters[id](_data);
+				}
+			});
+		}
+
+		// Attach to store
+		if (_store && 'attach' in _store) {
+			_store.attach(_this);
+		}
 
 		// Attach linked components
 		if (options.attachTo) {
-			var _this = this;
-			options.attachTo.forEach((function (coral) {
+			var _attachTo = trueTypeOf(options.attachTo) === 'array' ? option.attachTo : [options.attachTo];
+			_attachTo.forEach((function (coral) {
 				if ('attach' in coral) {
 					coral.attach(_this);
 				}
 			}));
 		}
 
+	};
+
+	/**
+	 * Store constructor
+	 * @param {Object} options The data store options
+	 */
+	Reef.Store = function (options) {
+		options.lagoon = true;
+		return new Reef(null, options);
 	};
 
 	/**
@@ -2585,12 +2684,29 @@ if (!Element.prototype.matches) {
 	};
 
 	/**
+	 * Get default* attributes to use on initial render
+	 * @param  {Array}   atts        The attributes on a node
+	 * @param  {Boolean} firstRender If true, this is the fist render
+	 * @return {Array}               Attributes, include default values
+	 */
+	var getDefaultAttributes = function (atts, firstRender) {
+		return atts.reduce((function (atts, attribute) {
+			if (attribute.att.length > 7 && attribute.att.slice(0, 7) === 'default') {
+				if (!firstRender) return atts;
+				attribute.att = attribute.att.slice(7);
+			}
+			atts.push(attribute);
+			return atts;
+		}), []);
+	};
+
+	/**
 	 * Add attributes to an element
 	 * @param {Node}  elem The element
 	 * @param {Array} atts The attributes to add
 	 */
-	var addAttributes = function (elem, atts) {
-		atts.forEach((function (attribute) {
+	var addAttributes = function (elem, atts, firstRender) {
+		getDefaultAttributes(atts, firstRender).forEach((function (attribute) {
 			// If the attribute is a class, use className
 			// Else if it's style, diff and update styles
 			// Otherwise, set the attribute
@@ -2601,13 +2717,15 @@ if (!Element.prototype.matches) {
 			} else {
 				if (attribute.att in elem) {
 					try {
-						elem[attribute.att] = attribute.value || attribute.att;
+						elem[attribute.att] = attribute.value;
+						if (!elem[attribute.att]) {
+							elem[attribute.att] = true;
+						}
 					} catch (e) {}
 				}
 				try {
 					elem.setAttribute(attribute.att, attribute.value || '');
 				} catch (e) {}
-
 			}
 		}));
 	};
@@ -2654,12 +2772,14 @@ if (!Element.prototype.matches) {
 
 	/**
 	 * Get the dynamic attributes for a node
-	 * @param  {Node} node  The node
-	 * @param  {Array} atts The static attributes
+	 * @param  {Node}    node       The node
+	 * @param  {Array}   atts       The static attributes
+	 * @param  {Boolean} isTemplate If true, these are for the template
 	 */
-	var getDynamicAttributes = function (node, atts) {
+	var getDynamicAttributes = function (node, atts, isTemplate) {
+		// if (isTemplate) return;
 		dynamicAttributes.forEach((function (prop) {
-			if (!node[prop]) return;
+			if (!node[prop] || (isTemplate && node.tagName.toLowerCase() === 'option' && prop === 'selected') || (isTemplate && node.tagName.toLowerCase() === 'select' && prop === 'value')) return;
 			atts.push(getAttribute(prop, node[prop]));
 		}));
 	};
@@ -2669,9 +2789,9 @@ if (!Element.prototype.matches) {
 	 * @param  {Node} node The node
 	 * @return {Array}     The node's attributes
 	 */
-	var getBaseAttributes = function (node) {
+	var getBaseAttributes = function (node, isTemplate) {
 		return Array.prototype.reduce.call(node.attributes, (function (arr, attribute) {
-			if (dynamicAttributes.indexOf(attribute.name) < 0) {
+			if (dynamicAttributes.indexOf(attribute.name) < 0 || (isTemplate && attribute.name === 'selected')) {
 				arr.push(getAttribute(attribute.name, attribute.value));
 			}
 			return arr;
@@ -2680,13 +2800,12 @@ if (!Element.prototype.matches) {
 
 	/**
 	 * Create an array of the attributes on an element
-	 * @param  {NamedNodeMap} attributes The attributes on an element
-	 * @param  {Node} node The node to get attributes from
-	 * @return {Array}                   The attributes on an element as an array of key/value pairs
+	 * @param  {Node}    node       The node to get attributes from
+	 * @return {Array}              The attributes on an element as an array of key/value pairs
 	 */
-	var getAttributes = function (node) {
-		var atts = getBaseAttributes(node);
-		getDynamicAttributes(node, atts);
+	var getAttributes = function (node, isTemplate) {
+		var atts = getBaseAttributes(node, isTemplate);
+		getDynamicAttributes(node, atts, isTemplate);
 		return atts;
 	};
 
@@ -2698,7 +2817,6 @@ if (!Element.prototype.matches) {
 	var makeElem = function (elem) {
 
 		// Create the element
-		// var node = elem.type === 'text' ? document.createTextNode(elem.content) : (elem.type === 'comment' ? document.createComment(elem.content) : document.createElement(elem.type));
 		var node;
 		if (elem.type === 'text') {
 			node = document.createTextNode(elem.content);
@@ -2711,7 +2829,7 @@ if (!Element.prototype.matches) {
 		}
 
 		// Add attributes
-		addAttributes(node, elem.atts);
+		addAttributes(node, elem.atts, true);
 
 		// If the element has child nodes, create them
 		// Otherwise, add textContent
@@ -2736,9 +2854,11 @@ if (!Element.prototype.matches) {
 
 		// Get attributes to remove
 		var remove = existing.atts.filter((function (att) {
+			if (dynamicAttributes.indexOf(att.att) > -1) return false;
 			var getAtt = find(template.atts, (function (newAtt) {
 				return att.att === newAtt.att;
 			}));
+
 			return getAtt === null;
 		}));
 
@@ -2793,7 +2913,7 @@ if (!Element.prototype.matches) {
 
 			// If element is an attached component, skip it
 			var isPolyp = polyps.filter((function (polyp) {
-				return node.node.nodeType !== 3 && node.node.matches(polyp);
+				return node.node.nodeType !== 3 && matches(node.node, polyp);
 			}));
 			if (isPolyp.length > 0) return;
 
@@ -2813,7 +2933,7 @@ if (!Element.prototype.matches) {
 			if (domMap[index].children.length < 1 && node.children.length > 0) {
 				var fragment = document.createDocumentFragment();
 				diff(node.children, domMap[index].children, fragment, polyps);
-				domMap[index].node.appendChild(fragment)
+				domMap[index].node.appendChild(fragment);
 				return;
 			}
 
@@ -2828,19 +2948,20 @@ if (!Element.prototype.matches) {
 
 	/**
 	 * Create a DOM Tree Map for an element
-	 * @param  {Node}   element The element to map
+	 * @param  {Node}    element    The element to map
+	 * @param  {Boolean} isSVG      If true, the node is an SVG
 	 * @return {Array}          A DOM tree map
 	 */
-	var createDOMMap = function (element, isSVG) {
+	var createDOMMap = function (element, isSVG, isTemplate) {
 		return Array.prototype.map.call(element.childNodes, (function (node) {
 			var details = {
 				content: node.childNodes && node.childNodes.length > 0 ? null : node.textContent,
-				atts: node.nodeType !== 1 ? [] : getAttributes(node),
+				atts: node.nodeType !== 1 ? [] : getAttributes(node, isTemplate),
 				type: node.nodeType === 3 ? 'text' : (node.nodeType === 8 ? 'comment' : node.tagName.toLowerCase()),
 				node: node
 			};
 			details.isSVG = isSVG || details.type === 'svg';
-			details.children = createDOMMap(node, details.isSVG);
+			details.children = createDOMMap(node, details.isSVG, isTemplate);
 			return details;
 		}));
 	};
@@ -2852,8 +2973,8 @@ if (!Element.prototype.matches) {
 	var renderPolyps = function (polyps, reef) {
 		if (!polyps) return;
 		polyps.forEach((function (coral) {
-			if (coral.attached.indexOf(reef) > -1) return err('ReefJS: ' + reef.elem + ' has attached nodes that it is also attached to, creating an infinite loop.');
-			if ('render' in coral) coral.render();
+			if (coral.attached.indexOf(reef) > -1) return err('' + reef.elem + ' has attached nodes that it is also attached to, creating an infinite loop.');
+			if ('render' in coral) debounceRender(coral);
 		}));
 	};
 
@@ -2890,10 +3011,26 @@ if (!Element.prototype.matches) {
 	};
 
 	/**
+	 * Emit a custom event
+	 * @param  {Node}   elem   The element to emit the custom event on
+	 * @param  {String} name   The name of the custom event
+	 * @param  {*}      detail Details to attach to the event
+	 */
+	Reef.emit = function (elem, name, detail) {
+		var event;
+		if (!elem || !name) return err('You did not provide an element or event name.');
+		event = new CustomEvent(name, {
+			bubbles: true,
+			detail: detail
+		});
+		elem.dispatchEvent(event);
+	};
+
+	/**
 	 * Render a template into the DOM
 	 * @return {Node}  The elemenft
 	 */
-	Component.prototype.render = function () {
+	Reef.prototype.render = function () {
 
 		// If this is used only for data, render attached and bail
 		if (this.lagoon) {
@@ -2902,16 +3039,15 @@ if (!Element.prototype.matches) {
 		}
 
 		// Make sure there's a template
-		if (!this.template) return err('Reef.js: No template was provided.');
+		if (!this.template) return err('No template was provided.');
 
 		// If elem is an element, use it.
 		// If it's a selector, get it.
 		var elem = trueTypeOf(this.elem) === 'string' ? document.querySelector(this.elem) : this.elem;
-		if (!elem) return err('Reef.js: The DOM element to render your template into was not found.');
+		if (!elem) return err('The DOM element to render your template into was not found.');
 
-		// Encode the data
-		// var data = this.allowHTML ? clone(this.data) : encode(this.data || {});
-		var data = clone(this.data || {}, this.allowHTML);
+		// Get the data (if there is any)
+		var data = clone((this.store ? this.store.data : this.data) || {}, this.allowHTML);
 
 		// Get the template
 		var template = (trueTypeOf(this.template) === 'function' ? this.template(data) : this.template);
@@ -2920,33 +3056,16 @@ if (!Element.prototype.matches) {
 		// If UI is unchanged, do nothing
 		if (elem.innerHTML === template.innerHTML) return;
 
-		// If target element or template are empty, inject the entire template
-		// Otherwise, diff and update
-		if (elem.innerHTML.trim().length < 1 || template.trim().length < 1) {
-			elem.innerHTML = template;
-		} else {
+		// Create DOM maps of the template and target element
+		var templateMap = createDOMMap(stringToHTML(template), false, true);
+		var domMap = createDOMMap(elem);
 
-			// Create DOM maps of the template and target element
-			var templateMap = createDOMMap(stringToHTML(template));
-			var domMap = createDOMMap(elem);
-
-			// Diff and update the DOM
-			var polyps = this.attached.map((function (polyp) { return polyp.elem; }));
-			diff(templateMap, domMap, elem, polyps);
-
-		}
+		// Diff and update the DOM
+		var polyps = this.attached.map((function (polyp) { return polyp.elem; }));
+		diff(templateMap, domMap, elem, polyps);
 
 		// Dispatch a render event
-		var event;
-		if (trueTypeOf(window.CustomEvent) === 'function') {
-			event = new CustomEvent('render', {
-				bubbles: true
-			});
-		} else {
-			event = document.createEvent('CustomEvent');
-			event.initCustomEvent('render', true, false, null);
-		}
-		elem.dispatchEvent(event);
+		Reef.emit(elem, 'render', data);
 
 		// If there are linked Reefs, render them, too
 		renderPolyps(this.attached, this);
@@ -2957,34 +3076,13 @@ if (!Element.prototype.matches) {
 	};
 
 	/**
-	 * Get a clone of the Component.data property
-	 * @return {Object} A clone of the Component.data property
-	 */
-	Component.prototype.getData = function () {
-		return clone(this.data, true);
-	};
-
-	/**
-	 * Update the data property and re-render
-	 * @param {Object} obj The data to merge into the existing state
-	 */
-	Component.prototype.setData = function (obj) {
-		if (trueTypeOf(obj) !== 'object') return err('ReefJS: The provided data is not an object.');
-		for (var key in obj) {
-			if (obj.hasOwnProperty(key)) {
-				this.data[key] = obj[key];
-			}
-		}
-		this.render();
-	};
-
-	/**
 	 * Attach a component to this one
 	 * @param  {Function|Array} coral The component(s) to attach
 	 */
-	Component.prototype.attach = function (coral) {
+	Reef.prototype.attach = function (coral) {
 		if (trueTypeOf(coral) === 'array') {
-			Array.prototype.push.apply(this.attached, coral);
+			this.attached.concat(coral);
+			// Array.prototype.push.apply(this.attached, coral);
 		} else {
 			this.attached.push(coral);
 		}
@@ -2994,7 +3092,7 @@ if (!Element.prototype.matches) {
 	 * Detach a linked component to this one
 	 * @param  {Function|Array} coral The linked component(s) to detach
 	 */
-	Component.prototype.detach = function (coral) {
+	Reef.prototype.detach = function (coral) {
 		var isArray = trueTypeOf(coral) === 'array';
 		this.attached = this.attached.filter((function (polyp) {
 			if (isArray) {
@@ -3009,13 +3107,12 @@ if (!Element.prototype.matches) {
 	 * Turn debug mode on or off
 	 * @param  {Boolean} on If true, turn debug mode on
 	 */
-	Component.debug = function (on) {
-		if (on) {
-			debug = true;
-		} else {
-			debug = false;
-		}
+	Reef.debug = function (on) {
+		debug = on ? true : false;
 	};
+
+	// Expose the clone method externally
+	Reef.clone = clone;
 
 
 	//
@@ -3024,14 +3121,9 @@ if (!Element.prototype.matches) {
 
 	support = checkSupport();
 
+	return Reef;
 
-	//
-	// Export public methods
-	//
-
-	return Component;
-
-}));
+}());
 
 /*!
  * scrollbooster v2.2.0

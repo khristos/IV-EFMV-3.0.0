@@ -4,7 +4,7 @@
 
 /**
  * @name EFMViewer
- * @description Plugin for EFM Viewer UI
+ * @description EFM Viewer UI Component
  */
 (function (root, factory) {
   if ( typeof define === 'function' && define.amd ) {
