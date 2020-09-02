@@ -23,7 +23,7 @@
 		"> 0.25%"
 	],
 	"devDependencies": {
-		"autoprefixer": "9.7.6",
+		"autoprefixer": "9.8.0",
 		"browser-sync": "2.26.7",
 		"cssnano": "4.1.10",
 		"del": "5.1.0",
@@ -38,7 +38,7 @@
 		"gulp-sass": "4.1.0",
 		"gulp-svgmin": "2.2.0",
 		"gulp-terser": "1.2.0",
-		"jshint": "2.11.0",
+		"jshint": "^2.11.1",
 		"jshint-stylish": "2.2.1",
 		"lazypipe": "1.0.2",
 		"node-sass": "4.14.1"

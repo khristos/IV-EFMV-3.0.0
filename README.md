@@ -31,5 +31,5 @@ $ npx http-server --cors
 * [Lightweight-JSONP](https://github.com/erikarenhill/Lightweight-JSONP) - Lightweight JSONP JavaScript library.
 * [Material Design Icons](https://materialdesignicons.com/) - Icon collection.
 * [placeholders.js](https://vanillajstoolkit.com/helpers/placeholders/) - Vanilla JS template engine.
-* [Reef](https://github.com/cferdinandi/reef) - Lightweight helper function for creating reactive, state-based components and UI.
+* [Reef](https://github.com/cferdinandi/reef) - Lightweight library for creating reactive, state-based components and UI.
 * [ScrollBooster](https://github.com/ilyashubin/scrollbooster) - Drag-to-scroll library.

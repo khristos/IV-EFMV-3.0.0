@@ -52,15 +52,6 @@
 
     // Data
     storageID: 'efm__configData',
-
-    // Templates (find in 'script' tags within html file)
-    templateStrip: EFM.Util.$('[data-efm-media-item]'),
-    templateTimeline: document.querySelector('[data-efm-timeline]'),
-    templateTimer: document.querySelector('[data-efm-timer]'),
-    templateControlBar: document.querySelector('[data-efm-controlBar]'),
-    templateLoader: document.querySelector('[data-efm-loader]'),
-    templateMenuBar: document.querySelector('[data-efm-menuBar]')
-
   };
 
 
@@ -108,7 +99,7 @@
 
     var publicAPIs = {}, settings;
     var media, marquee, children, displacement,
-        timerCurrent, timerTotal, animations = [];
+        timerCurrent, timerTotal, animations = [], dataStoreClone;
     var playButton, seekBar, scrollInstance;
 
     //
@@ -125,13 +116,113 @@
 
 
     /**
-     * @name dataSource
-     * @class
+     * @name getConfig
+     * @description Set data content for viewer (i.e. 'config.json')
+     */
+    /*var getConfig = function (id) {
+      var data =  EFM.Util.getLocalData(id);
+      return data;
+      console.log("EFMViewer CONFIG: ", data);
+    };*/
+
+    // Turn on debug mode
+    Reef.debug(true);
+
+
+    /**
+     * @name dataStore
      * @description Main data source for viewer (i.e. 'config.json')
      */
-    var dataSource = new Reef( null, {
-      data: EFM.Util.getLocalData(defaults.storageID),
-      lagoon: true
+    var dataStore = new Reef.Store({
+      data: {
+        config: EFM.Util.getLocalData(defaults.storageID),
+        viewer: {
+          hasState: 'is-loading',
+          speed: 1,
+        },
+        strip: {
+          duration: 0,
+          id: null, // '3978fs' ID of strip
+          store: EFM.Util.getLocalData(defaults.storageID).configData.strips,
+          times: null, 
+          title: null
+        },
+        menuBar: {
+          title: ' ',
+          machine: {
+            currentState: 'inactive',
+            states: {
+              inactive: {    on: { TOGGLE: 'active' }, 
+                          attrs: { className: ' ', ariaExpanded: 'false' }
+                        },
+              active: {    on: { TOGGLE: 'inactive' }, 
+                        attrs: { className: 'is-active', ariaExpanded: 'true' }
+                      }
+            }
+          }
+        },
+        timer: {
+          timerCurrent: 0,
+          timerTotal: 0
+        },
+        controlBar: {
+          playPauseButton: defaults.playButton,
+          hasState: defaults.playButtonState.isPaused
+        }
+      },
+      getters: {
+        configData: function (props) {
+          return props.config;
+        },
+        dataStoreClone: function (props) {
+          dataStoreClone = Reef.clone(props);
+          console.group("dataStoreClone");
+          console.log(dataStoreClone);
+          console.groupEnd();
+          return dataStoreClone;
+        },
+        stripData: function (props) {
+          return props.config.configData.strips.strip;
+        },
+        strip: function (props) {
+          return props.strip;
+        },
+        stripID: function (props) {
+          return props.strip.id;
+        },
+        viewerData: function (props) {
+          return props.viewer;
+        }
+      },
+      setters: {
+        // Load configuration data
+        loadConfig: function (props, id) {
+          props.config = EFM.Util.getLocalData(id);
+          console.log("EFMViewer configData: ", props.config);
+        },
+        setStrip: function (props, id) {
+          var _stripData = dataStore.get('stripData'),
+          _stripUI = dataStore.get('strip');
+          var strip = EFM.Util.getStrip(_stripData, id);
+          props.strip.id = id;
+          props.strip.store = props.config.configData.strips;
+          props.strip.title = strip.title;
+          props.strip.times = EFM.Util.getStripTimes(strip);
+          console.log("EFMViewer CONFIG: ", props.config);
+          console.log("props: ", props);
+        },
+        setStripDuration: function (props) {
+          var strip = EFM.Util.getStrip(dataStore.get('stripData'), dataStore.get('stripID'));
+          props.strip.duration = strip.duration;
+        },
+        setMenubar: function (props) {
+          var strip = EFM.Util.getStrip(dataStore.get('stripData'), dataStore.get('stripID'));
+          props.strip.title = strip.duration;
+        },
+        test: function (props) {
+          console.log("test");
+        }
+      }
     });
 
 
@@ -143,21 +234,18 @@
      * @param {Object} options  User options (data and template).
      */
     var player = new Reef(selector, {
-      data: {
-        speed: 1,
-        hasState: 'is-loading'
-      },
+      store: dataStore,
       template: function (props) {
         console.log('RENDER PLAYER.');
-        var html = '<div class="efm__media"></div>';
+        var html = '<div class="efm__media"></div> <!-- /.efm__media -->';
         html += `<div class="efm__controls" role="toolbar" aria-label="efm controls">
                   <form class="efm__timeline columns is-centered no-margin-bottom"></form>
                   <div class="efm__controlBar"></div>
                   <div class="efm__menuBar has-text-justified flex-justify"></div>
-                </div>`;
+                </div> <!-- /.efm__controls -->`;
         return html;
       },
-      attachTo: [dataSource]
+      attachTo: [dataStore]
     });
 
 
@@ -170,39 +258,53 @@
      * @description Component - viewer fetal strip scans.
      */
     var strip = new Reef(defaults.media, {
-      data: {
-        duration: 0,
-        id: null, // '3978fs' ID of strip
-        strips: dataSource.data.configData.strips.strip,
-        times: null, 
-        title: null
-      },
+      store: dataStore,
       template: function (props) {
-        var template = defaults.templateStrip.innerHTML,
-        strip = EFM.Util.getStrip(props.strips, props.id),
-        stripID = this.data.id = strip.id,
-        scans = strip.scans.scan.length > 0 ? strip.scans.scan : ["NO SCANS FOUND."],
-        html = '<div class="efm__media-collection" ' + 'data-efm-media-' + stripID + '>';
+        var _strip = EFM.Util.getStrip(props.config.configData.strips.strip, props.strip.id), stripID, html;
+        dataStore.get('dataStoreClone');
+        stripID = dataStoreClone.strip.id = _strip.id;
+        dataStoreClone.strip.times = EFM.Util.getStripTimes(_strip);
+        dataStoreClone.strip.title = _strip.title;
+        props.strip = dataStoreClone.strip;
 
-        this.data.title = strip.title;
-        this.data.times = EFM.Util.getStripTimes(strip);
-
-        scans.forEach((function (scan) {
-          html += placeholders( template, scan );
-        }));
-
-        html += '</div>';
-        html += `<div class="efm__loader" data-state="${player.data.hasState}"></div>`;
+        html = `<div class="efm__media-collection" data-efm-media-${stripID}></div>`;
+        //html += '</div>';
+        html += `<div class="efm__loader" data-state="${props.viewer.hasState}"></div>`;
 
         console.group("STRIP DATA");
-        console.table(this.data);
+        console.log(props.strip);
         console.groupEnd();
 
         return html;
       },
-      attachTo: [dataSource, player]
+      attachTo: [player]
     });
 
+    /**
+     * @name scanItems
+     * @class
+     * @param {string} [defaults.mediaCollection] The selector to use for component.
+     * @param {Object} [data] Data property for this component.
+     * @param {Object} [template] Template property for this component.
+     * @description Component - viewer fetal strip scans.
+     */
+    var scanItems = new Reef(defaults.mediaCollection, {
+      store: dataStore,
+      template: function (props) {
+        var _strip = EFM.Util.getStrip(props.config.configData.strips.strip, props.strip.id),
+        scans = _strip.scans.scan.length > 0 ? _strip.scans.scan : ["NO SCANS FOUND."],
+        html= "";
+
+        var template = scans.forEach((function (scan) {
+          html += `
+            <div class="efm__media-item">
+              <div class="efm__content"><img src="${scan._url}" alt=""></div>
+            </div>`;
+        }));
+        return html;
+      },
+      attachTo: [player]
+    });
 
     /**
      * @name timeline
@@ -210,32 +312,20 @@
      * @description Component - viewer timeline control.
      */
     var timeline = new Reef(defaults.timeline, {
-      data: null,
+      store: dataStore,
       template: function (props) {
-        var template = defaults.templateTimeline.innerHTML,
-        html = placeholders( template, props );
+        var html = `
+          <fieldset class="column is-full">
+            <input type="range" class="efm__seek-bar" list="tick-values" min="0" max="100" value="0" step=".00000000000000001" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <!--<output for="efm__seek-bar" class="efm__seek-time">0</output><br>-->
+            <datalist id="tick-values">
+              <option value="10" label="Low"></option>
+              <option value="90" label="High"></option>
+            </datalist>
+          </fieldset>`;
         return html;
       },
-      attachTo: [dataSource, player]
-    });
-
-
-    /**
-     * @name timer
-     * @class
-     * @description Component - viewer timer control.
-     */
-    var timer = new Reef(defaults.timer, {
-      data: {
-        timerCurrent: 0,
-        timerTotal: 0
-      },
-      template: function (props) {
-        var template = defaults.templateTimer.innerHTML,
-        html = placeholders( template, props );
-        return html;
-      },
-      attachTo: [dataSource, player]
+      attachTo: [player]
     });
 
 
@@ -245,19 +335,47 @@
      * @description Component - viewer control bar.
      */
     var controlBar = new Reef(defaults.controlBar, {
-      data: {
-        playPauseButton: defaults.playButton,
-        hasState: defaults.playButtonState.isPaused
-      },
+      store: dataStore,
       template: function (props) {
-        props['playPauseButton'] = props['playPauseButton'].replace('.', '');
-        var template = defaults.templateControlBar.innerHTML,
-        html = placeholders( template, props );
+        props.controlBar['playPauseButton'] = props.controlBar['playPauseButton'].replace('.', '');
+        var html = `
+          <form class="columns no-margin-bottom">
+            <fieldset class="efm__group column is-full">
+              <button class="efm__backward" title="Skip Backward" data-offset="15"><i class="mdi mdi-history"></i></button>
+              <button class="${props.controlBar.playPauseButton}" title="Play/Pause"><i class="mdi ${props.controlBar.hasState}"></i></button>
+              <button class="efm__forward" title="Skip Forward" data-offset="15"><i class="mdi mdi-history mdi-flip-h"></i></button>
+              <label for="efm__play-speed"></label>
+              <div class="select">
+                <select class="efm__play-speed" id="" title="Select Playback Speed">
+                  <option value="1" title="Set Playback Speed 1" selected>x1</option>
+                  <!--<option value="4">x100</option>
+                      <option value="20">x500</option>-->
+                </select>
+              </div>
+              <span class="efm__timer"></span>
+            </fieldset>
+            <!--<fieldset class="efm__group column is-4">
+              <button class="efm__menu"><i class="mdi mdi-format-list-bulleted"></i></button>
+            </fieldset>-->
+          </form>`
         return html;
       },
-      attachTo: [dataSource, player]
+      attachTo: [player]
     });
 
+    /**
+     * @name timer
+     * @class
+     * @description Component - viewer timer control.
+     */
+    var timer = new Reef(defaults.timer, {
+      store: dataStore,
+      template: function (props) {
+        var html = `<span class="efm__timer-current&total">${props.timer.timerCurrent} / ${props.timer.timerTotal}</span>`;
+        return html;
+      },
+      attachTo: [player]
+    });
 
     /**
      * @name loader
@@ -265,13 +383,13 @@
      * @description Component - viewer loading message.
      */
     var loader = new Reef(defaults.loader, {
-      data: null,
+      store: dataStore,
       template: function (props) {
-        var template = defaults.templateLoader.innerHTML,
-        html = placeholders( template, props );
+        var html = `<i class="mdi mdi-48px mdi-spin mdi-loading"></i>
+                    <svg class="efm__loader--svg" aria-labelledby="Loading scans..." preserveAspectRatio="none"><rect width="100%" height="100%" clip-path="url(#wavujzxldb)" fill="url(&quot;#863604d4dct&quot;)"/><defs><linearGradient id="863604d4dct"><stop offset=".473" stop-color="#dfdcdc"><animate attributeName="offset" values="-2; -2; 1" keyTimes="0; 0.25; 1" dur="2s" repeatCount="indefinite"/></stop><stop offset="1.473" stop-color="#ecebeb"><animate attributeName="offset" values="-1; -1; 2" keyTimes="0; 0.25; 1" dur="2s" repeatCount="indefinite"/></stop><stop offset="2.473" stop-color="#dfdcdc"><animate attributeName="offset" values="0; 0; 3" keyTimes="0; 0.25; 1" dur="2s" repeatCount="indefinite"/></stop></linearGradient><clipPath id="wavujzxldb"><rect rx="3" ry="3" width="100%" height="100%"/></clipPath></defs></svg>`;
         return html;
       },
-      attachTo: [dataSource, player]
+      attachTo: [player]
     });
 
 
@@ -281,28 +399,50 @@
      * @description Component - viewer menubar.
      */
     var menuBar = new Reef(defaults.menuBar, {
-      data: {
-        title: ' ',
-        machine: {
-          currentState: 'inactive',
-          states: {
-            inactive: {    on: { TOGGLE: 'active' }, 
-                        attrs: { className: ' ', ariaExpanded: 'false' }
-                      },
-            active: {    on: { TOGGLE: 'inactive' }, 
-                      attrs: { className: 'is-active', ariaExpanded: 'true' }
-                    }
-          }
-        }
-      },
+      store: dataStore,
       template: function (props) {
-        this.data.title = strip.data.title;
-        var template = defaults.templateMenuBar.innerHTML,
-        html = '';
-        html += placeholders( template, props );
+        props.menuBar.title = props.strip.title;
+        var html = '';
+        html += `
+          <div class="efm__menuBar-dots margin-right-auto">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+
+          <div class="efm__menuBar-strip border-radius-rounded dropdown {{attrs.className}}">
+            <button class="efm__menuBar-strip--title text-truncate button dropdown-trigger" aria-haspopup="true" aria-expanded="{{attrs.ariaExpanded}}" aria-controls="dropdown-menu-strips">
+              <img src="./assets/img/loading.gif" alt="Loading..." class="efm__menuBar-strip--loading">
+              <span>${props.strip.title}</span>
+              <span class="icon is-large absolute">
+                <i class="mdi mdi-menu-down" aria-hidden="true"></i>
+              </span>
+            </button>
+
+            <div class="dropdown-menu" x-placement="bottom-start" style="position: absolute; will-change: transform; top: 0px; left: 0px; transform: translate3d(0px, 28px, 0px);" id="dropdown-menu-strips" role="menu">
+              <div class="dropdown-content">
+                <!--<a href="#" class="dropdown-item is-active">
+                  index.html
+                </a>-->
+                <div class="dropdown-menu__strips"></div> <!-- Insert JS component-->
+                <div class="dropdown-new dropdown-new__strip border-bottom d-none">
+                  <input type="text" class="dropdown-menu__new-input" placeholder="output filename..."> 
+                  <a class="has-text-primary strip-save-changes">Save</a>
+                </div>
+                <hr class="dropdown-divider">
+                <div class="has-text-centered">
+                  <a class="dropdown-item strip-action__add"><i class="mdi mdi-playlist-plus"></i> Add a strip</a>
+                  <a class="dropdown-item strip-action__cancel d-none">cancel</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="efm__menuBar-media margin-left-auto"></div>
+        `
         return html;
       },
-      attachTo: [dataSource, player]
+      attachTo: [player]
     });
 
 
@@ -312,16 +452,14 @@
      * @description Component - EFM strip titles for dropdown menu.
      */
     var menuBarStrips = new Reef(defaults.menuBarStrips, {
-      data: {
-        strips: dataSource.data.configData.strips.strip
-      },
+      store: dataStore,
       template: function (props) {
         var html = '';
 
-        props.strips.forEach((function (strip) {
+        props.config.configData.strips.strip.forEach((function (_strip) {
           html += `
             <a class="dropdown-item strip-item border-bottom" data-strip-id="${strip.id}">
-              ${strip.title} - ${strip.id}
+              ${_strip.title} - ${_strip.id}
               <span class="dropdown-edit">
                 <i class="mdi mdi-lead-pencil strip-edit" title="Edit strip"></i>
                 <i class="mdi mdi-trash-can strip-delete" title="Delete strip"></i>
@@ -339,7 +477,7 @@
 
         return html;
       },
-      attachTo: [dataSource, player]
+      attachTo: [player]
     });
 
 
@@ -357,10 +495,10 @@
       });*/
 
       // Attach animation
-      publicAPIs.animate();
+      //publicAPIs.animate();
 
       // Setup event listeners
-      _addEvents();
+      //_addEvents();
     };
 
 
@@ -383,6 +521,7 @@
      */
     var _initMarquee = function() {
       marquee = document.querySelector(settings.mediaCollection);
+      if (!marquee) return;
       marquee.style.whiteSpace = 'nowrap';
 
       // Children of element to animate (i.e. scan images in each strip).
@@ -438,9 +577,13 @@
       playButton = settings.playButton,
       seekBar = document.querySelector(settings.seekBar);
 
-      var playerData = player.getData(),
-      stripStartTime = strip.data.times.mediaStartTime,
-      stripEndTime = strip.data.times.mediaEndTime;
+      //var playerData = player.getData(),
+      //stripStartTime = strip.data.times.mediaStartTime,
+      //stripEndTime = strip.data.times.mediaEndTime;
+      var playerData = dataStore.data.viewer,
+      strip = dataStore.data.strip;
+      stripStartTime = strip.times.mediaStartTime,
+      stripEndTime = strip.times.mediaEndTime;
 
       strip.data.duration = ( stripEndTime - stripStartTime ) / playerData.speed;
 
@@ -811,6 +954,8 @@
       var content = document.querySelector(defaults.mediaCollection);
       var scrollPercent = 0;
 
+      if (!content) return;
+
       scrollInstance = new ScrollBooster({
           viewport,
           content,
@@ -872,6 +1017,8 @@
     if (e.target.matches('.efm__player')) {
       //alert("Render event.");
     }
+    // Log rendered elements
+    console.log(`#${e.target.id} was rendered`);
   };
 
     /**
