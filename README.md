@@ -30,6 +30,6 @@ $ npx http-server --cors
 * [imagesLoaded](https://imagesloaded.desandro.com/) - Detect when images have been loaded.
 * [Lightweight-JSONP](https://github.com/erikarenhill/Lightweight-JSONP) - Lightweight JSONP JavaScript library.
 * [Material Design Icons](https://materialdesignicons.com/) - Icon collection.
-* [placeholders.js](https://vanillajstoolkit.com/helpers/placeholders/) - Vanilla JS template engine.
+* [placeholders.js](https://gomakethings.com/a-vanilla-js-alternative-to-handlebarsjs-and-mustachejs/) - Vanilla JS template engine.
 * [Reef](https://github.com/cferdinandi/reef) - Lightweight library for creating reactive, state-based components and UI.
 * [ScrollBooster](https://github.com/ilyashubin/scrollbooster) - Drag-to-scroll library.
