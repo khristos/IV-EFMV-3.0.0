@@ -33,3 +33,6 @@ $ npx http-server --cors
 * [placeholders.js](https://gomakethings.com/a-vanilla-js-alternative-to-handlebarsjs-and-mustachejs/) - Vanilla JS template engine.
 * [Reef](https://github.com/cferdinandi/reef) - Lightweight library for creating reactive, state-based components and UI.
 * [ScrollBooster](https://github.com/ilyashubin/scrollbooster) - Drag-to-scroll library.
+
+## Explore
+* [Ruffle](https://ruffle.rs/#usage) - An open source Flash Player emulator.
